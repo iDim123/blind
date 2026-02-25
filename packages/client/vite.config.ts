@@ -7,7 +7,15 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@blind/shared': path.resolve(__dirname, '../shared/src/index.ts'),
+      '@blind/shared': path.resolve(__dirname, '../shared/dist/index.js'),
+    },
+  },
+  optimizeDeps: {
+    include: ['@blind/shared'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/shared/, /node_modules/],
     },
   },
   server: {

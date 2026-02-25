@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +13,7 @@ import { LoginDto } from './dto/login.dto';
 import { SetProfileDto } from './dto/set-profile.dto';
 
 export interface JwtPayload {
-  sub: number;       // userId
+  sub: number; // userId
   role: UserRole;
   gameId?: number;
 }
@@ -33,7 +38,10 @@ export class AuthService {
       throw new UnauthorizedException('Пароль не установлен');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       await this.prisma.user.update({
         where: { id: user.id },
@@ -73,7 +81,6 @@ export class AuthService {
   }
 
   async joinByQr(qrToken: string) {
-    // Find game by QR token
     const game = await this.prisma.game.findUnique({
       where: { qrToken },
     });
@@ -86,22 +93,7 @@ export class AuthService {
       throw new ConflictException('Игра уже завершена');
     }
 
-    // Count existing player profiles for this game to determine player number
-    const existingProfilesCount = await this.prisma.playerProfile.count({
-      where: { gameId: game.id },
-    });
-
-    const playerNumber = existingProfilesCount + 1;
-
-    if (playerNumber > game.playersCount) {
-      throw new ConflictException('Все места в игре заняты');
-    }
-
-    const username = `p${playerNumber}_game${game.id}`;
-
-    // Use transaction to prevent race conditions
     const result = await this.prisma.$transaction(async (tx) => {
-      // Double-check count inside transaction
       const count = await tx.playerProfile.count({
         where: { gameId: game.id },
       });
@@ -111,9 +103,9 @@ export class AuthService {
         throw new ConflictException('Все места в игре заняты');
       }
 
-      const uname = `p${num}_game${game.id}`;
+      // Generate unique username with uuid suffix to avoid collisions
+      const uname = `p${num}_game${game.id}_${uuidv4().slice(0, 8)}`;
 
-      // Create user
       const user = await tx.user.create({
         data: {
           username: uname,
@@ -122,12 +114,14 @@ export class AuthService {
         },
       });
 
-      // Create player profile (no nickname/avatar yet)
+      // Use unique placeholder nickname to avoid @@unique([gameId, nickname]) collision
+      const placeholderNickname = `__pending_${user.id}`;
+
       const profile = await tx.playerProfile.create({
         data: {
           userId: user.id,
           gameId: game.id,
-          nickname: '',
+          nickname: placeholderNickname,
           avatarId: 0,
         },
       });
@@ -142,7 +136,6 @@ export class AuthService {
     };
     const accessToken = this.jwtService.sign(payload);
 
-    // Save session
     await this.prisma.session.create({
       data: {
         userId: result.user.id,
@@ -168,7 +161,7 @@ export class AuthService {
   }
 
   async setProfile(userId: number, gameId: number, dto: SetProfileDto) {
-    // Check nickname uniqueness within game
+    // Check nickname uniqueness within game (exclude pending placeholders)
     const existing = await this.prisma.playerProfile.findFirst({
       where: {
         gameId,
@@ -179,6 +172,11 @@ export class AuthService {
 
     if (existing) {
       throw new ConflictException('Это имя уже занято, выберите другое');
+    }
+
+    // Ensure nickname is not a placeholder format
+    if (dto.nickname.startsWith('__pending_')) {
+      throw new ConflictException('Недопустимое имя');
     }
 
     const profile = await this.prisma.playerProfile.updateMany({
@@ -220,7 +218,12 @@ export class AuthService {
     return !!session;
   }
 
-  async createAdminUser(email: string, password: string, firstName?: string, lastName?: string) {
+  async createAdminUser(
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string,
+  ) {
     const existing = await this.prisma.user.findUnique({
       where: { username: 'admin' },
     });
