@@ -3,7 +3,6 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -28,7 +27,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token =
         client.handshake.auth?.token ||
-        client.handshake.query?.token as string;
+        (client.handshake.query?.token as string);
 
       if (!token) {
         client.disconnect();
@@ -42,18 +41,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.connectedUsers.set(payload.sub, client);
 
-      // Join game room
       if (payload.gameId) {
         client.join(`game:${payload.gameId}`);
+
+        // Notify all players in this game about updated count
+        const count = this.getConnectedPlayersCount(payload.gameId);
+        this.server.to(`game:${payload.gameId}`).emit(WS_EVENTS.PLAYER_JOINED, {
+          connectedPlayers: count,
+        });
+
+        // Also notify admins
+        this.server.to('admin').emit(WS_EVENTS.ADMIN_UPDATE, {
+          gameId: payload.gameId,
+          connectedPlayers: count,
+          timestamp: Date.now(),
+        });
       }
 
-      // Admin room
       if (payload.role === 'ADMIN') {
-        // Admin joins all game rooms for observation
         client.join('admin');
       }
 
-      console.log(`Client connected: userId=${payload.sub}, role=${payload.role}`);
+      console.log(`Client connected: userId=${payload.sub}, role=${payload.role}, gameId=${payload.gameId}`);
     } catch (error) {
       console.error('WebSocket auth error:', error.message);
       client.disconnect();
@@ -62,13 +71,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     const userId = (client as any).userId;
+    const gameId = (client as any).gameId;
     if (userId) {
       this.connectedUsers.delete(userId);
+
+      // Notify remaining players about updated count
+      if (gameId) {
+        const count = this.getConnectedPlayersCount(gameId);
+        this.server.to(`game:${gameId}`).emit(WS_EVENTS.PLAYER_JOINED, {
+          connectedPlayers: count,
+        });
+        this.server.to('admin').emit(WS_EVENTS.ADMIN_UPDATE, {
+          gameId,
+          connectedPlayers: count,
+          timestamp: Date.now(),
+        });
+      }
+
       console.log(`Client disconnected: userId=${userId}`);
     }
   }
-
-  // Helper methods for emitting events
 
   emitToGame(gameId: number, event: string, data: any) {
     this.server.to(`game:${gameId}`).emit(event, data);

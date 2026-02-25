@@ -1,23 +1,51 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PlusIcon, ExitIcon, StopIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import {
+  PlusIcon,
+  ExitIcon,
+  StopIcon,
+  EyeOpenIcon,
+} from '@radix-ui/react-icons';
 import { gameApi } from '@/api/game.api';
 import { authApi } from '@/api/auth.api';
 import { GameResponse } from '@blind/shared';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'success' | 'destructive' | 'warning' | 'outline' }> = {
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    variant:
+      | 'default'
+      | 'secondary'
+      | 'success'
+      | 'destructive'
+      | 'warning'
+      | 'outline';
+  }
+> = {
   CREATED: { label: 'Создана', variant: 'secondary' },
   STARTED: { label: 'Запущена', variant: 'default' },
   FINISHED: { label: 'Завершена', variant: 'success' },
@@ -50,6 +78,15 @@ export default function GameListPage() {
       loadGames();
     } catch (err) {
       console.error('Failed to stop game:', err);
+    }
+  };
+
+  const handleStartGame = async (gameId: number) => {
+    try {
+      await gameApi.start(gameId);
+      loadGames();
+    } catch (err) {
+      console.error('Failed to start game:', err);
     }
   };
 
@@ -93,7 +130,10 @@ export default function GameListPage() {
             <TableBody>
               {games.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell
+                    colSpan={10}
+                    className="text-center text-muted-foreground py-8"
+                  >
                     Нет созданных игр
                   </TableCell>
                 </TableRow>
@@ -131,7 +171,24 @@ export default function GameListPage() {
                           <EyeOpenIcon className="mr-1 h-3.5 w-3.5" />
                           Просмотр
                         </Button>
-
+                        {game.status === 'CREATED' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-600 hover:text-green-600"
+                            onClick={() => handleStartGame(game.id)}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 15 15"
+                              fill="currentColor"
+                              className="mr-1 h-3.5 w-3.5"
+                            >
+                              <path d="M3.24182 2.32181C3.3919 2.23132 3.5784 2.22601 3.73338 2.30781L12.7334 7.05781C12.8974 7.14436 13 7.31457 13 7.5C13 7.68543 12.8974 7.85564 12.7334 7.94219L3.73338 12.6922C3.5784 12.774 3.3919 12.7687 3.24182 12.6782C3.09175 12.5877 3 12.4252 3 12.25V2.75C3 2.57476 3.09175 2.4123 3.24182 2.32181Z" />
+                            </svg>
+                            Старт
+                          </Button>
+                        )}
                         {game.status === 'STARTED' && (
                           <Button
                             variant="ghost"
@@ -146,7 +203,11 @@ export default function GameListPage() {
 
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-600">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-amber-600 hover:text-amber-600"
+                            >
                               <ExitIcon className="mr-1 h-3.5 w-3.5" />
                               Выход всех
                             </Button>
