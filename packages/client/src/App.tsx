@@ -5,6 +5,7 @@ import { UserRole } from '@blind/shared';
 import LoginPage from '@/pages/admin/LoginPage';
 import GameListPage from '@/pages/admin/GameListPage';
 import CreateGamePage from '@/pages/admin/CreateGamePage';
+import GameDetailPage from '@/pages/admin/GameDetailPage';
 
 import JoinPage from '@/pages/player/JoinPage';
 import SetProfilePage from '@/pages/player/SetProfilePage';
@@ -69,7 +70,14 @@ function App() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/admin/games/:id"
+        element={
+          <ProtectedRoute role={UserRole.ADMIN}>
+            <GameDetailPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<RootRedirect />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

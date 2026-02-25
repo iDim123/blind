@@ -39,18 +39,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       (client as any).role = payload.role;
       (client as any).gameId = payload.gameId;
 
+      // Disconnect previous socket for this user if exists
+      const existingSocket = this.connectedUsers.get(payload.sub);
+      if (existingSocket && existingSocket.id !== client.id) {
+        existingSocket.disconnect();
+      }
+
       this.connectedUsers.set(payload.sub, client);
 
       if (payload.gameId) {
         client.join(`game:${payload.gameId}`);
 
-        // Notify all players in this game about updated count
+        // Count unique users, not sockets
         const count = this.getConnectedPlayersCount(payload.gameId);
         this.server.to(`game:${payload.gameId}`).emit(WS_EVENTS.PLAYER_JOINED, {
           connectedPlayers: count,
         });
 
-        // Also notify admins
         this.server.to('admin').emit(WS_EVENTS.ADMIN_UPDATE, {
           gameId: payload.gameId,
           connectedPlayers: count,
@@ -62,7 +67,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.join('admin');
       }
 
-      console.log(`Client connected: userId=${payload.sub}, role=${payload.role}, gameId=${payload.gameId}`);
+      console.log(
+        `Client connected: userId=${payload.sub}, role=${payload.role}, gameId=${payload.gameId}`,
+      );
     } catch (error) {
       console.error('WebSocket auth error:', error.message);
       client.disconnect();
@@ -119,7 +126,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   getConnectedPlayersCount(gameId: number): number {
-    const room = this.server.sockets.adapter.rooms.get(`game:${gameId}`);
-    return room ? room.size : 0;
+    let count = 0;
+    for (const [userId, socket] of this.connectedUsers.entries()) {
+      if ((socket as any).gameId === gameId && socket.connected) {
+        count++;
+      }
+    }
+    return count;
   }
 }

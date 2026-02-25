@@ -79,7 +79,6 @@ export class AuthService {
       },
     };
   }
-
   async joinByQr(qrToken: string) {
     const game = await this.prisma.game.findUnique({
       where: { qrToken },
@@ -103,7 +102,6 @@ export class AuthService {
         throw new ConflictException('Все места в игре заняты');
       }
 
-      // Generate unique username with uuid suffix to avoid collisions
       const uname = `p${num}_game${game.id}_${uuidv4().slice(0, 8)}`;
 
       const user = await tx.user.create({
@@ -114,7 +112,6 @@ export class AuthService {
         },
       });
 
-      // Use unique placeholder nickname to avoid @@unique([gameId, nickname]) collision
       const placeholderNickname = `__pending_${user.id}`;
 
       const profile = await tx.playerProfile.create({

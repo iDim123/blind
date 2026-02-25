@@ -8,8 +8,14 @@ interface AuthState {
   userId: number | null;
   gameId: number | null;
   profile: { nickname: string; avatarId: number } | null;
-  setAuth: (token: string, role: UserRole, userId: number, gameId?: number) => void;
+  setAuth: (
+    token: string,
+    role: UserRole,
+    userId: number,
+    gameId?: number,
+  ) => void;
   setProfile: (profile: { nickname: string; avatarId: number }) => void;
+  setGameId: (gameId: number | undefined) => void;
   logout: () => void;
 }
 
@@ -24,8 +30,15 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (token, role, userId, gameId) =>
         set({ token, role, userId, gameId: gameId || null }),
       setProfile: (profile) => set({ profile }),
+      setGameId: (gameId) => set({ gameId }),
       logout: () =>
-        set({ token: null, role: null, userId: null, gameId: null, profile: null }),
+        set({
+          token: null,
+          role: null,
+          userId: null,
+          gameId: null,
+          profile: null,
+        }),
     }),
     { name: 'blind-auth' },
   ),
