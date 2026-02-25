@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: blind_mysql
+    container_name: blind_new
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -11,8 +11,8 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_new_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
 volumes:
-  mysql_data:
+  mysql_new_data:

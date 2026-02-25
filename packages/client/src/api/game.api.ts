@@ -1,5 +1,5 @@
 import http from './http';
-import { CreateGameRequest, GameResponse } from '@blind/shared';
+import { CreateGameRequest, GameResponse, Decision } from '@blind/shared';
 
 export const gameApi = {
   create: (data: CreateGameRequest) =>
@@ -16,4 +16,10 @@ export const gameApi = {
 
   stop: (id: number) =>
     http.post(`/games/${id}/stop`).then((r) => r.data),
+
+  getPlayerData: () =>
+    http.get('/games/current/player-data').then((r) => r.data),
+
+  makeDecision: (decisionId: number, decision: Decision) =>
+    http.post('/games/current/make-decision', { decisionId, decision }).then((r) => r.data),
 };

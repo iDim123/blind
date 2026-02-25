@@ -16,9 +16,9 @@ import { qrApi } from '@/api/qr.api';
 export default function CreateGamePage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '',
-    playersCount: 12,
-    groupsCount: 3,
+    name: 'test1',
+    playersCount: 4,
+    groupsCount: 1,
     playersByGroups: '',
     stepsCount: 5,
     isOpen: false,
