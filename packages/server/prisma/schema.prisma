@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PLAYER
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  REMOVED
+}
+
+enum GameStatus {
+  CREATED
+  STARTED
+  FINISHED
+  STOPPED
+}
+
+enum Decision {
+  AGREE
+  INSIST
+}
+
+model User {
+  id               Int        @id @default(autoincrement())
+  username         String     @unique
+  email            String?    @unique
+  passwordHash     String?
+  role             UserRole
+  status           UserStatus @default(ACTIVE)
+  failedLoginCount Int        @default(0)
+  createdAt        DateTime   @default(now())
+
+  playerProfiles PlayerProfile[]
+  sessions       Session[]
+
+  @@map("users")
+}
+
+model PlayerProfile {
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  gameId   Int
+  nickname String
+  avatarId Int
+  groupId  Int?
+
+  createdAt DateTime @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game            Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  group           Group?           @relation(fields: [groupId], references: [id])
+  playerDecisions PlayerDecision[]
+
+  @@unique([userId, gameId])
+  @@unique([gameId, nickname])
+  @@map("player_profiles")
+}
+
+model Game {
+  id              Int        @id @default(autoincrement())
+  name            String
+  playersCount    Int
+  groupsCount     Int
+  playersByGroups String?
+  stepsCount      Int
+  isOpen          Boolean    @default(false)
+  status          GameStatus @default(CREATED)
+  qrToken         String     @unique
+  createdAt       DateTime   @default(now())
+
+  groups         Group[]
+  playerProfiles PlayerProfile[]
+  sessions       Session[]
+
+  @@map("games")
+}
+
+model Group {
+  id          Int     @id @default(autoincrement())
+  gameId      Int
+  groupIndex  Int
+  currentStep Int     @default(1)
+  isFinished  Boolean @default(false)
+
+  game           Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  stepRounds     StepRound[]
+  playerProfiles PlayerProfile[]
+
+  @@map("groups")
+}
+
+model StepRound {
+  id         Int     @id @default(autoincrement())
+  groupId    Int
+  step       Int
+  isFinished Boolean @default(false)
+
+  group           Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  playerDecisions PlayerDecision[]
+
+  @@map("step_rounds")
+}
+
+model PlayerDecision {
+  id              Int      @id @default(autoincrement())
+  stepRoundId     Int
+  playerProfileId Int
+  decision        Decision?
+  result          Int?
+  isSkipped       Boolean  @default(false)
+
+  stepRound     StepRound     @relation(fields: [stepRoundId], references: [id], onDelete: Cascade)
+  playerProfile PlayerProfile @relation(fields: [playerProfileId], references: [id], onDelete: Cascade)
+
+  @@map("player_decisions")
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  gameId    Int?
+  token     String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game? @relation(fields: [gameId], references: [id])
+
+  @@map("sessions")
+}

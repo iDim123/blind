@@ -1,0 +1,24 @@
+{
+  "name": "blind",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Переговоры вслепую — multiplayer game",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w @blind/server",
+    "dev:client": "npm run dev -w @blind/client",
+    "build:shared": "cd packages/shared && npx tsc",
+    "build:server": "npm run build -w @blind/server",
+    "build:client": "npm run build -w @blind/client",
+    "build": "npm run build:shared && npm run build:server && npm run build:client",
+    "db:generate": "npm run prisma:generate -w @blind/server",
+    "db:migrate": "npm run prisma:migrate -w @blind/server",
+    "db:push": "npm run prisma:push -w @blind/server",
+    "db:seed": "npm run prisma:seed -w @blind/server",
+    "create-admin": "npm run create-admin -w @blind/server",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  }
+}
